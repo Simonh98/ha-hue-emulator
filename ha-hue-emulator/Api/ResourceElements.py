@@ -5,6 +5,7 @@ from Bridge.Bridge import Bridge
 from Container import Container
 from datetime import datetime
 from Config import Config
+import helpers as helper
 from Bridge.User import User
 import logging, os, copy
 try:
@@ -13,6 +14,9 @@ except ImportError:
     tzset = None
 
 log = logging.getLogger(__name__)
+
+# API v1
+# ref: https://developers.meethue.com/develop/hue-api/7-configuration-api/
 
 class ResourceElements(Resource):
     
@@ -25,59 +29,95 @@ class ResourceElements(Resource):
         self.bridge_service = bridge_service
         self.config_service = config_service
 
-    def get(self, username, resource):
+    @property
+    def unauthconfig(self):
+        return {
+            "name": self.bridge_service.name,
+            "datastoreversion": self.bridge_service.staticconfig["datastoreversion"],
+            "swversion": self.bridge_service.swversion,
+            "apiversion": self.bridge_service.apiversion,
+            "mac": self.config_service.mac,
+            "bridgeid": self.bridge_service.bridgeid,
+            "factorynew": False,
+            "replacesbridgeid": None,
+            "modelid": self.bridge_service.staticconfig["modelid"],
+            "starterkitid": ""
+        }
         
-        if not self.bridge_service.validate_user(username):
-            
-            if resource == 'config':
-                return {
-                    "name": self.bridge_service.name,
-                    "datastoreversion": self.bridge_service.static["datastoreversion"],
-                    "swversion": self.bridge_service.swversion,
-                    "apiversion": self.bridge_service.apiversion,
-                    "mac": self.config_service.mac,
-                    "bridgeid": self.bridge_service.bridgeid,
-                    "factorynew": False,
-                    "replacesbridgeid": None,
-                    "modelid": self.bridge_service.static["modelid"],
-                    "starterkitid": ""
-                }
-            return [{"error": {"type": 1, "address": "/", "description": "unauthorized user"}}]
+    @property
+    def config(self):
+        config = copy.deepcopy(self.bridge_service.staticconfig)
+        config.update({
+            "Hue Essentials key": self.bridge_service.hue_essentials_key, 
+            "Remote API enabled": self.bridge_service.remote_api_enabled, 
+            "apiversion": self.bridge_service.apiversion, 
+            "bridgeid": self.bridge_service.bridgeid,
+            "ipaddress": self.config_service.host,
+            "netmask": self.config_service.netmask, 
+            "gateway": self.config_service.gateway,
+            "mac": self.config_service.mac, 
+            "name": self.bridge_service.name, 
+            "swversion": self.bridge_service.swversion, 
+            "timezone": self.bridge_service.timezone,
+            "UTC": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"),
+            "localtime": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+        })
+        config["whitelist"] = {}
+        for key, user in self.bridge_service.users.items():
+            user: User
+            config["whitelist"][key] = {
+                "create date": user.created,
+                "last use date": user.lastused,
+                "name": user.name
+            }
+        return config
         
-        if resource == 'capabilities':
-            return self.bridge_service.capabilites
-        
-        if resource in ["lights", "groups", "scenes", "rules", "resourcelinks", "schedules", "sensors"]:
-            return {}
-        
-        elif resource == 'config':
-            config = copy.deepcopy(self.bridge_service.static)
-            config.update({
-                "Hue Essentials key": self.bridge_service.hue_essentials_key, 
-                "Remote API enabled": self.bridge_service.remote_api_enabled, 
-                "apiversion": self.bridge_service.apiversion, 
-                "bridgeid": self.bridge_service.bridgeid,
-                "ipaddress": self.config_service.host,
-                "netmask": self.config_service.netmask, 
-                "gateway": self.config_service.gateway,
-                "mac": self.config_service.mac, 
-                "name": self.bridge_service.name, 
-                "swversion": self.bridge_service.swversion, 
-                "timezone": self.bridge_service.timezone,
-                "UTC": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"),
-                "localtime": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-            })
-            config["whitelist"] = {}
-            for key, user in self.bridge_service.users.items():
-                user: User
-                config["whitelist"][key] = {
-                    "create date": user.created,
-                    "last use date": user.lastused,
-                    "name": user.name
-                }
-            return config
+    @property
+    def lights(self):
         return {}
-
+        
+    @property
+    def groups(self):
+        return {}
+        
+    @property
+    def scenes(self):
+        return {}
+        
+    @property
+    def rules(self):
+        return {}
+        
+    @property
+    def resourcelinks(self):
+        return {}
+        
+    @property
+    def schedules(self):
+        return {}
+        
+    @property
+    def sensors(self):
+        return {}
+        
+    @property
+    def capabilities(self):
+        return self.bridge_service.capabilites
+    
+    # Returns list of all configuration elements in the bridge
+    def get(self, username, resource):
+        if not self.bridge_service.validate_user(username):
+            return self.unauthconfig if resource == 'config' else helper.ErrorMessages.UserNotAuthorized
+        try:
+            # config, lights, groups, scenes, rules, resourcelinks, schedules, sensors, capabilities
+            data = getattr(self, resource)
+            log.info(data)
+            return data
+        except AttributeError:
+            # TODO return correct error message
+            return "", 403
+    
+    
     def post(self, username, resource):
         
         if not self.bridge_service.validate_user(username):
@@ -210,8 +250,10 @@ class ResourceElements(Resource):
         # configManager.bridgeConfig.save_config(backup=False, resource=resource)
         # return [{"success": {"id": new_object_id}}]
 
+    # Allows the user to set some configuration values
     def put(self, username, resource):
-        
+        log.info(request.get_json(force=True))
+        # return "", 403
         if not self.bridge_service.validate_user(username):
             return [{
                 "error": {
@@ -231,9 +273,9 @@ class ResourceElements(Resource):
 
         for key, value in data.items():
             if isinstance(value, dict):
-                self.bridge_service.static[key].update(value)
+                self.bridge_service.staticconfig[key].update(value)
             else:
-                self.bridge_service.static[key] = value
+                self.bridge_service.staticconfig[key] = value
 
         # build response list
         responseList = []

@@ -9,6 +9,15 @@ def safeget(dct, default=None, *keys):
             return default
     return dct
 
+def getuuid():
+    return str(uuidlib.uuid4())
+
+class ErrorMessages:
+    
+    @property
+    def UserNotAuthorized(self):
+        return [{"error": {"type": 1, "address": "/", "description": "unauthorized user"}}]
+
 # def v2_entertainement(idv1, idv2, modelid):
 #     result = {
 #         "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f'{idv2}entertainment')),

@@ -3,7 +3,7 @@ from flask import request
 from dependency_injector.wiring import Provide, inject
 from Bridge.Bridge import Bridge
 from Container import Container
-import logging
+import logging, dataclasses
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +19,24 @@ class ClipV2(Resource):
             log.error("User not authorized")
             return "", 403
         
+        log.info(request)
+        
         data = []
+        
+        # /bridge
+        data.append(self.bridge_service.bridge)
+        
+        # /devices
+        for _, device in self.bridge_service.devices.items():
+            data.append(dataclasses.asdict(device))
+        data.append(self.bridge_service.bridge_device)
+        
+        # /light
+        for _, light in self.bridge_service.lights.items():
+            data.append(dataclasses.asdict(light))
+            
+        data.append(self.bridge_service.bridgezigbee)
+        
         # # homekit
         # data.append(v2HomeKit())
         # # device
@@ -80,4 +97,5 @@ class ClipV2(Resource):
         #     if power != None:
         #         data.append(power)
 
+        # log.info(data)
         return {"errors": [], "data": data}

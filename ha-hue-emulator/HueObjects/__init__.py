@@ -3,8 +3,6 @@ import uuid
 import random
 import weakref
 from HueObjects.light_types import lightTypes, archetype
-from HueObjects.sensors.sensor_types import sensorTypes
-from HueObjects.protocols import protocols
 from threading import Thread
 from datetime import datetime
 from pprint import pprint

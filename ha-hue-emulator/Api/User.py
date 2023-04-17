@@ -7,7 +7,7 @@ from flask import request
 import uuid
 from datetime import datetime
 from dependency_injector.wiring import Provide, inject
-from Bridge import Bridge
+from Bridge.Bridge import Bridge
 from Container import Container
 
 
@@ -23,7 +23,7 @@ class ShortConfig(Resource):
         return {
             "apiversion": self.bridge_service.apiversion,
             "bridgeid": self.bridge_service.bridgeid,
-            "datastoreversion": self.bridge_service.static["datastoreversion"],
+            "datastoreversion": self.bridge_service.staticconfig["datastoreversion"],
             "factorynew": False,
             "mac": self.bridge_service.mac,
             "modelid": self.bridge_service.modelid,
@@ -32,6 +32,9 @@ class ShortConfig(Resource):
             "starterkitid": "",
             "swversion": self.bridge_service.swversion
         }
+        
+    def put(self):
+        log.info(request.get_json(force=True))
 
 class NewUser(Resource):
     

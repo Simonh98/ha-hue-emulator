@@ -4,6 +4,7 @@ from dependency_injector.wiring import Provide, inject
 from Bridge.Bridge import Bridge
 from Container import Container
 import logging
+from dataclasses import asdict
 
 log = logging.getLogger(__name__)
 
@@ -14,16 +15,16 @@ class ClipV2Resource(Resource):
         self.bridge_service = bridge_service
         
         self.get_actions = {
-            'scene' : [s.v2_api() for s in bridge_service.scenes],
-            'light' : [], # [s.v2_api() for s in self.bridge_service.lights]
+            'scene' : [],
+            'light' : [asdict(light) for _, light in self.bridge_service.lights.items()],
             'room' : [], # [s.v2_room() for s in self.bridge_service.groups]
             'zone' : [], # [s.v2_zone() for s in self.bridge_service.groups]
             'grouped_light' : [], # [s.v2_api() for s in self.bridge_service.grouped_lights]
             'zigbee_connectivity' : [], # [s.zigbee() for s in self.bridge_service.lights]
             'entertainment' : [], # [s.v2_entertainment() for s in self.bridge_service.lights]
             'entertainment_configuration' : [], # [s.v2_entertainment_conf() for s in self.bridge_service.groups]
-            'device' : [],
-            'bridge' : [self.bridge_service.general],
+            'device' : [asdict(device) for _, device in self.bridge_service.devices.items()],
+            'bridge' : [self.bridge_service.bridge],
             'bridge_home' : [],
             'homekit' : [],
             'behavior_instance' : [],
