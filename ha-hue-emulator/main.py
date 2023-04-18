@@ -14,22 +14,20 @@ def main():
     container.init_resources()
     container.wire(modules=[
         __name__,
-        'Api.User',
-        'Api.Resource',
-        'Api.ResourceElements',
-        'Api.ClipV2',
-        'Api.ClipV2ResourceId'
+        'Endpoints.v1.User',
+        'Endpoints.v2.Resource',
+        'Endpoints.v2.ResourceElements',
+        'Endpoints.v2.ClipV2',
+        'Endpoints.v2.ClipV2ResourceId'
     ])
     
-    
     config_service = container.config_service()
+    messaging_service = container.messaging_service()
     bridge_service = container.bridge_service()
     hass_service = container.hass_service()
     
-    
     from Bridge.LightProfiles import Device
     from Bridge.LightProfiles import Light
-    from dataclasses import asdict
     light_hue_go = Light(
         id=helper.getuuid(),
         on=False,
@@ -47,12 +45,11 @@ def main():
     bridge_service.add_device(device_hue_go)
     bridge_service.add_light(light_hue_go)
     
-    
-    from Api.HueApi import HueApi
-    hue_api = HueApi(config_service, bridge_service)
+    import Endpoints.Core
+    core = Endpoints.Core.Core(config_service, messaging_service, bridge_service)
     
     hass_service.connect()
-    hue_api.run_forever()
+    core.run_forever()
 
 if __name__ == '__main__':
     main()
