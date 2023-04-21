@@ -3,7 +3,7 @@ from flask import request
 from dependency_injector.wiring import Provide, inject
 from Bridge.Bridge import Bridge
 from Container import Container
-import logging
+import logging, traceback
 from dataclasses import asdict
 
 log = logging.getLogger(__name__)
@@ -40,8 +40,9 @@ class ClipV2Resource(Resource):
         if not self.bridge_service.validate_user(request.headers["hue-application-key"]):
             return "", 403
         try:
-            return {'data': self.get_actions[resource], 'erros': []}
+            return {'data': self.get_actions[resource], 'errors': []}
         except KeyError:
+            log.error(traceback.format_exc())
             return {'erros': [{"description": "Not Found"}]}
 
     def post(self, resource):

@@ -1,5 +1,6 @@
 from HueObjects.light_types import lightTypes, archetype
 import uuid as uuidlib
+import json
 
 def safeget(dct, default=None, *keys):
     for key in keys:
@@ -11,6 +12,9 @@ def safeget(dct, default=None, *keys):
 
 def getuuid():
     return str(uuidlib.uuid4())
+
+def prettydict(d: dict):
+    return json.dumps(d, sort_keys=True, indent=4)
 
 class ErrorMessages:
     

@@ -15,10 +15,11 @@ def main():
     container.wire(modules=[
         __name__,
         'Endpoints.v1.User',
+        'Endpoints.v1.ResourceElements',
         'Endpoints.v2.Resource',
-        'Endpoints.v2.ResourceElements',
         'Endpoints.v2.ClipV2',
-        'Endpoints.v2.ClipV2ResourceId'
+        'Endpoints.v2.ClipV2ResourceId',
+        'Endpoints.v2.EventStream'
     ])
     
     config_service = container.config_service()
@@ -29,15 +30,15 @@ def main():
     from Bridge.LightProfiles import Device
     from Bridge.LightProfiles import Light
     light_hue_go = Light(
-        id=helper.getuuid(),
-        on=False,
+        id_v1="/lights/2",
         owner=Light.Owner(helper.getuuid()),
-        metadata=Light.Metadata('Hue Go lightservice')
+        metadata=Light.Metadata('Hue Go lightservice'),
+        dimming=Light.Dimming(0)
     )
     device_hue_go = Device(
-        id=helper.getuuid(),
-        services=[],
-        product_data=Device.ProductData('LLC020', 'Signify Netherlands B.V.', 'Hue Go'),
+        id_v1="/lights/1",
+        # product_data=Device.ProductData('LLC020', 'Signify Netherlands B.V.', 'Hue Go'),
+        product_data=Device.ProductData('LWB010', 'Signify Netherlands B.V.', 'LWB010'),
         metadata=Device.Metadata('Hue Go device')
     )
     device_hue_go.link_lightservice(light_hue_go)

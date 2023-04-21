@@ -11,11 +11,12 @@ from Endpoints.v1.User import ShortConfig, NewUser
 from Endpoints.v2.Resource import ClipV2Resource
 from Endpoints.v2.EventStream import EventStream
 from Endpoints.v2.ClipV2 import ClipV2
-from Endpoints.v2.ResourceElements import ResourceElements
+from Endpoints.v1.ResourceElements import ResourceElements
 from Endpoints.v2.ClipV2ResourceId import ClipV2ResourceId
 from threading import Thread
 
 log = logging.getLogger(__name__)
+# logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 class Core:
     
@@ -33,7 +34,7 @@ class Core:
         self.api.app.config['RESTFUL_JSON'] = {'ensure_ascii': False}
         
         # v1
-        self.api.add_resource(NewUser, '/api/', strict_slashes=False)
+        self.api.add_resource(NewUser, '/api', strict_slashes=False)
         self.api.add_resource(ShortConfig, '/api/config', strict_slashes=False)
         # api.add_resource(EntireConfig, '/api/<string:username>', strict_slashes=False)
         self.api.add_resource(ResourceElements, '/api/<string:username>/<string:resource>', strict_slashes=False)

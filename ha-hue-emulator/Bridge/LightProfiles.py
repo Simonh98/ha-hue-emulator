@@ -1,10 +1,14 @@
-from dataclasses import dataclass
-import traceback, logging
+from dataclasses import dataclass, asdict, field
+import traceback, logging, uuid, random
+import helpers as helper
 
 log = logging.getLogger(__name__)
 
 # https://developers.meethue.com/develop/hue-api/supported-devices/
 
+def generate_unique_id():
+    rand_bytes = [random.randrange(0, 256) for _ in range(3)]
+    return "00:17:88:01:00:%02x:%02x:%02x-0b" % (rand_bytes[0], rand_bytes[1], rand_bytes[2])
 
 @dataclass
 class ColorGamut:
@@ -71,7 +75,7 @@ class Light:
     class Metadata:
         name: str
         archtype: str = 'sultan_bulb'
-        fixed_mired: int = None
+        # fixed_mired: int = None
         
     @dataclass
     class ColorTempearture:
@@ -87,7 +91,7 @@ class Light:
         
         
         archtype: str = 'sultan_bulb'
-        fixed_mired: int = None
+        # fixed_mired: int = None
 
     @dataclass
     class Color:
@@ -101,13 +105,31 @@ class Light:
         gamut: Gamut
         gamut_type: str # A, B, C, other
 
-    id: str
-    on: bool
+    id_v1: str
     owner: Owner
     metadata: Metadata
+    mode: str = 'normal'
+    type: str = 'light'
+    on: bool = False
+    id: str = None
+    effects: dict = field(default_factory=dict)
     dimming: Dimming = None
     color_temperature: ColorTempearture = None
     color: Color = None
+    
+    def __post_init__(self):
+        if self.id is None:
+            self.id = helper.getuuid()
+        self.uniqueid = generate_unique_id()
+
+    def asdict(self):
+        # return {k: v for k, v in self.__dict__.items() if v is not None}
+        data = asdict(self)
+        if data['dimming'] is None: data['dimming'] = {}
+        if data['color_temperature'] is None: data['color_temperature'] = {}
+        if data['color'] is None: data['color'] = {}
+        data['on'] = {'on': data['on']}
+        return data
 
 # https://developers.meethue.com/develop/hue-api-v2/api-reference/#resource_device_get
 @dataclass
@@ -130,17 +152,40 @@ class Device:
         rid: str
         rtype: str
     
-    id: str
-    # id_v1: str
-    services: list[Service]
+    id_v1: str
     product_data: ProductData
     metadata: Metadata
+    id: str = None
+    services: list[Service] = field(default_factory=list)
     
+    identify: dict = field(default_factory=dict)
+    type: str = 'device'
+    
+    def __post_init__(self):
+        if self.id is None:
+            self.id = helper.getuuid()
+        self.link_zigbee_connectivity()
+        
+    def get_light_services(self) -> list:
+        ret = []
+        for service in self.services:
+            if service.rtype == 'light':
+                ret.append(service.rid)
+        return ret
+        
     def link_lightservice(self, light: Light):
         try:
             self.services.append(Device.Service(light.owner.rid, light.owner.rtype))
         except KeyError:
             log.error(traceback.format_exc())
+            
+    def link_zigbee_connectivity(self):
+        for service in self.services:
+            if service.rtype == 'zigbee_connectivity':
+                return
+        self.services.append(Device.Service(
+            str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.id}zigbee_connectivity')), 'zigbee_connectivity'
+        ))
     
     def unlink_lightservice(self, light: Light):
         try:
@@ -151,3 +196,7 @@ class Device:
                     return
         except KeyError:
             log.error(traceback.format_exc())
+
+    def asdict(self):
+        data = asdict(self)
+        return data

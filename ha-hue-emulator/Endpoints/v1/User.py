@@ -20,6 +20,8 @@ class ShortConfig(Resource):
         self.bridge_service = bridge_service
     
     def get(self):
+        log.info(f"GET -> {request.path} -> {request.get_json(force=True, silent=True)}")
+        return {'apiversion': '1.56.0', 'bridgeid': '000000FFFE000000', 'datastoreversion': '126', 'factorynew': False, 'mac': '00:00:00:00:00:00', 'modelid': 'BSB002', 'name': 'DiyHue Bridge', 'replacesbridgeid': None, 'starterkitid': '', 'swversion': '19561788040'}
         return {
             "apiversion": self.bridge_service.apiversion,
             "bridgeid": self.bridge_service.bridgeid,
@@ -32,9 +34,6 @@ class ShortConfig(Resource):
             "starterkitid": "",
             "swversion": self.bridge_service.swversion
         }
-        
-    def put(self):
-        log.info(request.get_json(force=True))
 
 class NewUser(Resource):
     
@@ -43,23 +42,26 @@ class NewUser(Resource):
 
     def get(self):
         return [{
-                "error": {
-                    "type": 4,
-                    "address": "/api",
-                    "description": "method, GET, not available for resource, /"
-                }
-            }]
+            "error": {
+                "type": 4,
+                "address": "/api",
+                "description": "method, GET, not available for resource, /"
+            }
+        }]
 
     def post(self):
         data: dict = request.get_json(force=True)
         devicetype: str = data.get('devicetype', None)
         genclientkey: bool = data.get('generateclientkey', None)
         if devicetype is None or genclientkey is None or not genclientkey:
-            return [{ "error": {
-                        "type": 6,
-                        "address": f"/api/{list(data.keys())[0]}",
-                        "description": f"parameter, {list(data.keys())[0]}, not available"
-                }}]
+            log.error(f"{devicetype=} is None or {genclientkey=} is None or not {genclientkey=}")
+            return [{
+                "error": {
+                    "type": 6,
+                    "address": f"/api/{list(data.keys())[0]}",
+                    "description": f"parameter, {list(data.keys())[0]}, not available"
+                }
+            }]
         # if self.bridge_service.lastlinkbuttonpushed + 30 >= datetime.now().timestamp():
         if True:
             id = str(uuid.uuid1()).replace('-', '')
@@ -68,6 +70,7 @@ class NewUser(Resource):
             clientkey = str(uuid.uuid4()).replace('-', '').upper()
             response = [{"success": {"username": id, 'clientkey': clientkey}}]
             self.bridge_service.add_user(id, devicetype, clientkey)
+            log.info(f"POST -> {request.path} -> {request.get_json(force=True)} | {response=}")
             return response
         else:
             return [

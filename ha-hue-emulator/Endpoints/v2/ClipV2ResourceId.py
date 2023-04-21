@@ -12,6 +12,7 @@ class ClipV2ResourceId(Resource):
     @inject
     def __init__(self, bridge_service: Bridge = Provide[Container.bridge_service]) -> None:
         self.bridge_service = bridge_service
+        
     
     # def get(self, resource, resourceid)
         

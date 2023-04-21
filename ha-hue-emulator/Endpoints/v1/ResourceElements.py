@@ -7,7 +7,7 @@ from datetime import datetime
 from Config import Config
 import helpers as helper
 from Bridge.User import User
-import logging, os, copy
+import logging, os, copy, pytz
 try:
     from time import tzset
 except ImportError:
@@ -58,9 +58,9 @@ class ResourceElements(Resource):
             "mac": self.config_service.mac, 
             "name": self.bridge_service.name, 
             "swversion": self.bridge_service.swversion, 
-            "timezone": self.bridge_service.timezone,
+            "timezone": "none",
             "UTC": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S"),
-            "localtime": datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+            "localtime": datetime.now(pytz.timezone('Europe/Berlin')).strftime("%Y-%m-%dT%H:%M:%S")
         })
         config["whitelist"] = {}
         for key, user in self.bridge_service.users.items():
@@ -70,12 +70,15 @@ class ResourceElements(Resource):
                 "last use date": user.lastused,
                 "name": user.name
             }
+        # log.info(helper.prettydict(config))
         return config
         
     @property
     def lights(self):
-        return {}
-        
+        data = self.bridge_service.getv1lights()
+        print(data)
+        return data
+    
     @property
     def groups(self):
         return {}
@@ -111,7 +114,7 @@ class ResourceElements(Resource):
         try:
             # config, lights, groups, scenes, rules, resourcelinks, schedules, sensors, capabilities
             data = getattr(self, resource)
-            log.info(data)
+            # log.info(data)
             return data
         except AttributeError:
             # TODO return correct error message
@@ -119,7 +122,7 @@ class ResourceElements(Resource):
     
     
     def post(self, username, resource):
-        
+        log.info(f"POST -> {request.path} -> {request.get_json(force=True)}")
         if not self.bridge_service.validate_user(username):
             return [{
                 "error": {
@@ -129,7 +132,7 @@ class ResourceElements(Resource):
                 }
             }]
             
-        log.info(resource)
+        # log.info(resource)
         
         
         # authorisation = authorize(username, resource)
@@ -252,7 +255,8 @@ class ResourceElements(Resource):
 
     # Allows the user to set some configuration values
     def put(self, username, resource):
-        log.info(request.get_json(force=True))
+        log.info(f"PUT -> {request.path} -> {request.get_json(force=True)}")
+        # log.info(request.get_json(force=True))
         # return "", 403
         if not self.bridge_service.validate_user(username):
             return [{
@@ -264,7 +268,7 @@ class ResourceElements(Resource):
             }]
         
         data: dict = request.get_json(force=True)
-        log.info(data)
+        log.info(f"UPDATE CONFIG: {data}")
         # apply timezone OS variable
         if resource == "config" and "timezone" in data:
             os.environ['TZ'] = data["timezone"]

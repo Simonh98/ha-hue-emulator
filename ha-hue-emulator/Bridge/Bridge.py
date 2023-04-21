@@ -7,7 +7,7 @@ import queue, copy
 import helpers as helper
 from Bridge.LightProfiles import Device
 from Bridge.LightProfiles import Light
-
+import re
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class Bridge:
             "swupdate": "disconnected",
             "time": "disconnected"
         },
-        "linkbutton": False,
+        "linkbutton": True,
         "modelid": "BSB002",
         "portalconnection": "disconnected",
         "portalservices": False,
@@ -588,7 +588,6 @@ class Bridge:
             }
         }
 
-    
     @property
     def general(self):
         return {
@@ -617,22 +616,19 @@ class Bridge:
             "time_zone": { "time_zone":  self.timezone },
         }
         
-    
     @property
     def bridge(self):
         return {
+            # 'bridge_id': self.bridgeid.lower(), # TODO
+            'bridge_id': '000000fffe000000',
             'id': str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.bridgeid}bridge')),
-            'owner': {
-                'rid': str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.bridgeid}device')),
-                'rtype': 'device'
-            },
-            "time_zone": {
-                "time_zone": 'Europe/Berlin'
-            },
-            "type": "bridge",
-            'bridge_id': self.bridgeid
+            'id_v1': '',
+            'identify': {},
+            'owner': {'rid': str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.bridgeid}device')), 'rtype': 'device'},
+            'time_zone': {'time_zone': 'Europe/Berlin'},
+            'type': 'bridge'
         }
-    
+
     @property
     def bridge_device(self):
         result = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.bridgeid}device')), "type": "device"}
@@ -680,17 +676,30 @@ class Bridge:
             },
             "type": "zigbee_connectivity"
         }
-    
+
+    @property
+    def homekit(self):
+        return {
+            "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.bridgeid}homekit')),
+            "status": "unpaired",
+            "type": "homekit",
+            "status_values": [
+                "pairing",
+                "paired",
+                "unpaired"
+            ]
+        }
+        
     def __init__(self, config_service: Config) -> None:
-        self.name="Emulated-Hue"
+        self.name="Emulated Hue"
         self.id = helper.getuuid()
         self.hue_essentials_key = str(uuid.uuid1()).replace('-', '')
         self.remote_api_enabled = False
-        self.mac= config_service.mac
-        self.apiversion = "1.55.0"
-        self.swversion = "1956046040"
-        self.mac = config_service.mac.replace(':', '')
-        self.bridgeid = f"{self.mac[:6]}FFFE{self.mac[-6:]}".upper()
+        self.mac = config_service.mac
+        self.apiversion = "1.56.0"
+        self.swversion = "19561788040"
+        # self.mac = config_service.mac.replace(':', '')
+        self.bridgeid = f"{ config_service.mac.replace(':', '')[:6]}FFFE{ config_service.mac.replace(':', '')[-6:]}".upper()
         self.modelid = "BSB002"
         self.lastlinkbuttonpushed = 1680384712
         self.users = {}
@@ -723,5 +732,45 @@ class Bridge:
         
     def add_light(self, light: Light):
         with self.mutex:
-            self.lights[light.id] = light
+            self.lights[light.owner.rid] = light
         log.info(f"Added light -> ({light.metadata.name})")
+        
+    def getv1lights(self):
+        ret = {}
+        for _, device in self.devices.items():
+            device: Device
+            lightids: list = device.get_light_services()
+            if len(lightids) == 0:
+                continue
+            light: Light = self.lights[lightids[0]] # TODO: consider all linked light services?
+            v1id =re.search("\d+", device.id_v1)[0] # TODO
+            ret[v1id] = {
+                'type': 'Dimmable light',
+                'swversion': device.product_data.software_version,
+                'uniqueid': light.uniqueid, # TODO should be part of device
+                'manufacturername': device.product_data.manufacturer_name,
+                'modelid': device.product_data.model_id,
+                'name': device.product_data.product_name,
+                'state': {
+                    'on': light.on,
+                    'alert': None, # TODO
+                    'reachable': True # TODO
+                }
+            }
+            if light.dimming is not None:
+                ret[v1id]['state']['bri'] = light.dimming.brightness
+
+            if light.color_temperature is not None:
+                ret[v1id]["state"]["ct"] = light.color_temperature.mirek
+                ret[v1id]["state"]["colormode"] = 'ct' # TODO (?)
+
+            if light.color is not None:
+                ret[v1id]["state"]["xy"] = [light.color.xy.x, light.color.xy.y]
+                ret[v1id]["state"]["hue"] = 0 # TODO
+                ret[v1id]["state"]["sat"] = 0 # TODO
+                ret[v1id]["state"]["colormode"] = 'xy' # TODO (?)
+
+            # if "mode" in self.state:
+            #     result["state"]["mode"] = self.state["mode"]
+            
+        return ret
