@@ -38,7 +38,8 @@ class ClipV2(Resource):
         for _, light in self.bridge_service.lights.items():
             light: Light
             data.append(light.asdict())
-            # log.info(helper.prettydict(data[-1]))
+            
+        log.info(helper.prettydict(data))
             
         # data.append(self.bridge_service.bridgezigbee)
         

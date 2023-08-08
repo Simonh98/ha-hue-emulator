@@ -732,7 +732,7 @@ class Bridge:
         
     def add_light(self, light: Light):
         with self.mutex:
-            self.lights[light.owner.rid] = light
+            self.lights[light.id] = light
         log.info(f"Added light -> ({light.metadata.name})")
         
     def getv1lights(self):
@@ -745,6 +745,26 @@ class Bridge:
             light: Light = self.lights[lightids[0]] # TODO: consider all linked light services?
             v1id =re.search("\d+", device.id_v1)[0] # TODO
             ret[v1id] = {
+                'capabilites': {
+                    'certified': True,
+                    'control': {
+                        'maxlumen': 806, # TODO
+                        'mindimlevel': 5000 # TODO
+                    },
+                    'streaming': {
+                        'proxy': False,
+                        'renderer': False
+                    }
+                },
+                'config': {
+                    'archtype': device.product_data.product_archtype,
+                    'direction': 'omnidirectional',
+                    'function': 'mixed',
+                    'startup': {
+                        'configured': True,
+                        'mode': 'safety'
+                    }
+                },
                 'type': 'Dimmable light',
                 'swversion': device.product_data.software_version,
                 'uniqueid': light.uniqueid, # TODO should be part of device
@@ -753,8 +773,13 @@ class Bridge:
                 'name': device.product_data.product_name,
                 'state': {
                     'on': light.on,
-                    'alert': None, # TODO
-                    'reachable': True # TODO
+                    'alert': 'none', # TODO
+                    'reachable': True, # TODO
+                    'mode': 'homeautomation',
+                },
+                'swupdate': {
+                    'lastinstall': '2020-12-09T19:13:52',
+                    'state': 'noupdates'
                 }
             }
             if light.dimming is not None:

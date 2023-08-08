@@ -76,7 +76,7 @@ class ResourceElements(Resource):
     @property
     def lights(self):
         data = self.bridge_service.getv1lights()
-        print(data)
+        print(helper.prettydict(data))
         return data
     
     @property

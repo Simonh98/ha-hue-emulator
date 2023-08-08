@@ -30,7 +30,7 @@ class Config:
     
     def get_config(self, file=None):
         if file is None:
-            file = f"{pathlib.Path().resolve()}/conf.main.yaml"
+            file = f"{pathlib.Path().resolve()}/ha-hue-emulator/conf.main.yaml"
         config = {}
         try:
             with open(file, "r") as stream:

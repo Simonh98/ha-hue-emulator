@@ -29,17 +29,19 @@ def main():
     
     from Bridge.LightProfiles import Device
     from Bridge.LightProfiles import Light
-    light_hue_go = Light(
-        id_v1="/lights/2",
-        owner=Light.Owner(helper.getuuid()),
-        metadata=Light.Metadata('Hue Go lightservice'),
-        dimming=Light.Dimming(0)
-    )
+    
+    
     device_hue_go = Device(
         id_v1="/lights/1",
         # product_data=Device.ProductData('LLC020', 'Signify Netherlands B.V.', 'Hue Go'),
         product_data=Device.ProductData('LWB010', 'Signify Netherlands B.V.', 'LWB010'),
         metadata=Device.Metadata('Hue Go device')
+    )
+    light_hue_go = Light(
+        id_v1="/lights/1",
+        owner=Light.Owner(device_hue_go.id),
+        metadata=Light.Metadata('Hue Go lightservice'),
+        dimming=Light.Dimming(0.)
     )
     device_hue_go.link_lightservice(light_hue_go)
     

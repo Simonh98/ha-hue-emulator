@@ -19,19 +19,34 @@ class ShortConfig(Resource):
     def __init__(self, bridge_service: Bridge = Provide[Container.bridge_service]) -> None:
         self.bridge_service = bridge_service
     
+    # /api/config
     def get(self):
         log.info(f"GET -> {request.path} -> {request.get_json(force=True, silent=True)}")
-        return {'apiversion': '1.56.0', 'bridgeid': '000000FFFE000000', 'datastoreversion': '126', 'factorynew': False, 'mac': '00:00:00:00:00:00', 'modelid': 'BSB002', 'name': 'DiyHue Bridge', 'replacesbridgeid': None, 'starterkitid': '', 'swversion': '19561788040'}
+        # return {'apiversion': '1.56.0', 'bridgeid': '000000FFFE000000', 'datastoreversion': '126', 'factorynew': False, 'mac': '00:00:00:00:00:00', 'modelid': 'BSB002', 'name': 'DiyHue Bridge', 'replacesbridgeid': None, 'starterkitid': '', 'swversion': '19561788040'}
+        
+        return {
+            "name": "Homeassistant",
+            "datastoreversion": "159",
+            "swversion": "1959097030",
+            "apiversion": "1.40.0",
+            "mac": "d8:5e:d3:0f:f9:df",
+            "bridgeid": "ECB5FAFFFE943168",
+            "factorynew": False,
+            "replacesbridgeid": None,
+            "modelid": "BSB002",
+            "starterkitid": ""
+        }
+        
         return {
             "apiversion": self.bridge_service.apiversion,
             "bridgeid": self.bridge_service.bridgeid,
-            "datastoreversion": self.bridge_service.staticconfig["datastoreversion"],
+            # "datastoreversion": self.bridge_service.staticconfig["datastoreversion"],
             "factorynew": False,
             "mac": self.bridge_service.mac,
             "modelid": self.bridge_service.modelid,
             "name": self.bridge_service.name,
             "replacesbridgeid": None,
-            "starterkitid": "",
+            # "starterkitid": "",
             "swversion": self.bridge_service.swversion
         }
 
@@ -41,6 +56,7 @@ class NewUser(Resource):
         self.bridge_service = bridge_service
 
     def get(self):
+        log.info("get")
         return [{
             "error": {
                 "type": 4,
@@ -51,6 +67,7 @@ class NewUser(Resource):
 
     def post(self):
         data: dict = request.get_json(force=True)
+        log.info(data)
         devicetype: str = data.get('devicetype', None)
         genclientkey: bool = data.get('generateclientkey', None)
         if devicetype is None or genclientkey is None or not genclientkey:

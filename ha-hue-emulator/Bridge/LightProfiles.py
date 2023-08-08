@@ -69,7 +69,7 @@ class Light:
     @dataclass
     class Owner:
         rid: str
-        rtype: str = 'light'
+        rtype: str = 'device'
         
     @dataclass
     class Metadata:
@@ -126,9 +126,21 @@ class Light:
         # return {k: v for k, v in self.__dict__.items() if v is not None}
         data = asdict(self)
         if data['dimming'] is None: data['dimming'] = {}
-        if data['color_temperature'] is None: data['color_temperature'] = {}
-        if data['color'] is None: data['color'] = {}
+        else:
+            data['dimming']['min_dim_level'] = .1 # TODO
+        if data['color_temperature'] is None: del data['color_temperature']
+        if data['color'] is None: del data['color']
         data['on'] = {'on': data['on']}
+        
+        data.update({
+            'alert': { 'action_values': ['breathe'] },
+            'dynamics': {
+                'speed': 0,
+                'speed_valid': False,
+                'status': 'none',
+                'status_values': ['none', 'dynamic_palette']
+            }
+        })
         return data
 
 # https://developers.meethue.com/develop/hue-api-v2/api-reference/#resource_device_get
@@ -165,6 +177,7 @@ class Device:
         if self.id is None:
             self.id = helper.getuuid()
         self.link_zigbee_connectivity()
+        self.link_entertainement()
         
     def get_light_services(self) -> list:
         ret = []
@@ -175,7 +188,7 @@ class Device:
         
     def link_lightservice(self, light: Light):
         try:
-            self.services.append(Device.Service(light.owner.rid, light.owner.rtype))
+            self.services.append(Device.Service(light.id, 'light'))
         except KeyError:
             log.error(traceback.format_exc())
             
@@ -185,6 +198,14 @@ class Device:
                 return
         self.services.append(Device.Service(
             str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.id}zigbee_connectivity')), 'zigbee_connectivity'
+        ))
+            
+    def link_entertainement(self):
+        for service in self.services:
+            if service.rtype == 'entertainement':
+                return
+        self.services.append(Device.Service(
+            str(uuid.uuid5(uuid.NAMESPACE_URL, f'{self.id}entertainement')), 'entertainement'
         ))
     
     def unlink_lightservice(self, light: Light):

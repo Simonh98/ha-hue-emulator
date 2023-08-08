@@ -37,7 +37,7 @@ class Core:
         self.api.add_resource(NewUser, '/api', strict_slashes=False)
         self.api.add_resource(ShortConfig, '/api/config', strict_slashes=False)
         # api.add_resource(EntireConfig, '/api/<string:username>', strict_slashes=False)
-        self.api.add_resource(ResourceElements, '/api/<string:username>/<string:resource>', strict_slashes=False)
+        # self.api.add_resource(ResourceElements, '/api/<string:username>/<string:resource>', strict_slashes=False)
         # api.add_resource(Element, '/api/<string:username>/<string:resource>/<string:resourceid>', strict_slashes=False)
         # api.add_resource(ElementParam, '/api/<string:username>/<string:resource>/<string:resourceid>/<string:param>/', strict_slashes=False)
         # api.add_resource(ElementParamId, '/api/<string:username>/<string:resource>/<string:resourceid>/<string:param>/<string:paramid>/', strict_slashes=False)
